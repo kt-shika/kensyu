@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Leafletで館内施設表示アプリ</title>
+<link
+  rel="stylesheet"
+  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+/>
+<style>
+  #map {
+    height: 90vh;
+    width: 100%;
+  }
+</style>
+</head>
+<body>
+<h2>施設マップ</h2>
+<div id="map"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+  // 初期地図表示位置（石川県某所を中心に）
+  const map = L.map('map').setView([37.07, 136.75], 11);
+
+  // OpenStreetMap のタイルレイヤーを追加
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 18,
+    attribution: '© OpenStreetMap contributors'
+  }).addTo(map);
+
+  // 施設データの配列（例としてユーザー提供の一部を加工）
+  const locations = [
+    {
+      name: "ミチノリテミチノリ",
+      lat: 37.14056,
+      lng: 136.7254,
+      toilet: "有",
+      wheelchair: "有",
+      babyroom: "無"
+    },
+    {
+      name: "高速バスタカハマ",
+      lat: 37.00437,
+      lng: 136.7757,
+      toilet: "有",
+      wheelchair: "無",
+      babyroom: "無"
+    },
+    {
+      name: "せせらぎセセラギ",
+      lat: 37.07718,
+      lng: 136.7744,
+      toilet: "有",
+      wheelchair: "無",
+      babyroom: "無"
+    },
+    {
+      name: "柴木渓谷シャバキシボ",
+      lat: 37.00019,
+      lng: 136.776,
+      toilet: "有",
+      wheelchair: "無",
+      babyroom: "無"
+    }
+  ];
+
+  // マーカー作成＆ポップアップ設定
+  locations.forEach(loc => {
+    const marker = L.marker([loc.lat, loc.lng]).addTo(map);
+    const popupContent = `
+      <b>${loc.name}</b><br/>
+      トイレ: ${loc.toilet}<br/>
+      車椅子使用: ${loc.wheelchair}<br/>
+      乳幼児用施設: ${loc.babyroom}
+    `;
+    marker.bindPopup(popupContent);
+  });
+</script>
+</body>
+</html>
