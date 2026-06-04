@@ -3,14 +3,14 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>施設マップ（Leaflet）</title>
+<title>施設マップ（フィルタ機能付き）</title>
 <link
   rel="stylesheet"
   href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
 />
 <style>
   #map {
-    height: 90vh;
+    height: 85vh;
     width: 100%;
   }
   body {
@@ -22,10 +22,27 @@
     margin: 0;
     background: #f0f0f0;
   }
+  #filters {
+    padding: 8px 10px;
+    background: #fafafa;
+    border-bottom: 1px solid #ccc;
+    display: flex;
+    gap: 20px;
+    align-items: center;
+  }
+  label {
+    user-select: none;
+  }
 </style>
 </head>
 <body>
 <h2>施設マップ</h2>
+
+<div id="filters">
+  <label><input type="checkbox" id="wheelchairOnly" /> 車椅子対応ありのみ表示</label>
+  <label><input type="checkbox" id="babyroomOnly" /> 乳幼児用施設ありのみ表示</label>
+</div>
+
 <div id="map"></div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -37,7 +54,6 @@
     attribution: "© OpenStreetMap contributors",
   }).addTo(map);
 
-  // すべてのデータを入れました
   const locations = [
     {"name":"ミチノリテミチノリ","lat":37.14056,"lng":136.7254,"toilet":"有","wheelchair":"有","babyroom":"無"},
     {"name":"高速バスタカハマ","lat":37.00437,"lng":136.7757,"toilet":"有","wheelchair":"無","babyroom":"無"},
@@ -64,16 +80,52 @@
     {"name":"福浦みなとフクラミナト","lat":37.08415,"lng":136.7238,"toilet":"有","wheelchair":"無","babyroom":"有"}
   ];
 
-  locations.forEach(loc => {
-    const marker = L.marker([loc.lat, loc.lng]).addTo(map);
-    const popupContent = `
-      <b>${loc.name}</b><br/>
-      トイレ: ${loc.toilet}<br/>
-      車椅子使用: ${loc.wheelchair}<br/>
-      乳幼児用施設: ${loc.babyroom}
-    `;
-    marker.bindPopup(popupContent);
-  });
+  // マーカーリスト
+  const markers = [];
+
+  // マーカー作成関数
+  function createMarkers() {
+    locations.forEach(loc => {
+      const marker = L.marker([loc.lat, loc.lng]);
+      const popupContent = `
+        <b>${loc.name}</b><br/>
+        トイレ: ${loc.toilet}<br/>
+        車椅子使用: ${loc.wheelchair}<br/>
+        乳幼児用施設: ${loc.babyroom}
+      `;
+      marker.bindPopup(popupContent);
+      markers.push({ marker, data: loc });
+      marker.addTo(map);
+    });
+  }
+
+  // フィルタ適用関数
+  function applyFilter() {
+    const wheelchairOnly = document.getElementById("wheelchairOnly").checked;
+    const babyroomOnly = document.getElementById("babyroomOnly").checked;
+
+    markers.forEach(({ marker, data }) => {
+      const wheelchairMatch = wheelchairOnly ? data.wheelchair === "有" : true;
+      const babyroomMatch = babyroomOnly ? data.babyroom === "有" : true;
+
+      if (wheelchairMatch && babyroomMatch) {
+        if (!map.hasLayer(marker)) {
+          marker.addTo(map);
+        }
+      } else {
+        if (map.hasLayer(marker)) {
+          map.removeLayer(marker);
+        }
+      }
+    });
+  }
+
+  // 初期表示
+  createMarkers();
+
+  // チェックボックスの change イベントにフィルタ処理を紐付け
+  document.getElementById("wheelchairOnly").addEventListener("change", applyFilter);
+  document.getElementById("babyroomOnly").addEventListener("change", applyFilter);
 </script>
 </body>
 </html>
