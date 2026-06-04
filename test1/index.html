@@ -2,8 +2,8 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Leafletで館内施設表示アプリ</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>施設マップ（Leaflet）</title>
 <link
   rel="stylesheet"
   href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -13,6 +13,15 @@
     height: 90vh;
     width: 100%;
   }
+  body {
+    font-family: "Yu Gothic","ヒラギノ角ゴ Pro W3","Hiragino Kaku Gothic Pro","メイリオ",Meiryo,sans-serif;
+    margin: 0; padding: 0;
+  }
+  h2 {
+    padding: 10px;
+    margin: 0;
+    background: #f0f0f0;
+  }
 </style>
 </head>
 <body>
@@ -21,52 +30,40 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-  // 初期地図表示位置（石川県某所を中心に）
-  const map = L.map('map').setView([37.07, 136.75], 11);
+  const map = L.map("map").setView([37.07, 136.75], 11);
 
-  // OpenStreetMap のタイルレイヤーを追加
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom: 18,
-    attribution: '© OpenStreetMap contributors'
+    attribution: "© OpenStreetMap contributors",
   }).addTo(map);
 
-  // 施設データの配列（例としてユーザー提供の一部を加工）
+  // すべてのデータを入れました
   const locations = [
-    {
-      name: "ミチノリテミチノリ",
-      lat: 37.14056,
-      lng: 136.7254,
-      toilet: "有",
-      wheelchair: "有",
-      babyroom: "無"
-    },
-    {
-      name: "高速バスタカハマ",
-      lat: 37.00437,
-      lng: 136.7757,
-      toilet: "有",
-      wheelchair: "無",
-      babyroom: "無"
-    },
-    {
-      name: "せせらぎセセラギ",
-      lat: 37.07718,
-      lng: 136.7744,
-      toilet: "有",
-      wheelchair: "無",
-      babyroom: "無"
-    },
-    {
-      name: "柴木渓谷シャバキシボ",
-      lat: 37.00019,
-      lng: 136.776,
-      toilet: "有",
-      wheelchair: "無",
-      babyroom: "無"
-    }
+    {"name":"ミチノリテミチノリ","lat":37.14056,"lng":136.7254,"toilet":"有","wheelchair":"有","babyroom":"無"},
+    {"name":"高速バスタカハマ","lat":37.00437,"lng":136.7757,"toilet":"有","wheelchair":"無","babyroom":"無"},
+    {"name":"せせらぎセセラギ","lat":37.07718,"lng":136.7744,"toilet":"有","wheelchair":"無","babyroom":"無"},
+    {"name":"柴木渓谷シャバキシボ","lat":37.00019,"lng":136.776,"toilet":"有","wheelchair":"無","babyroom":"無"},
+    {"name":"みらいとミライト","lat":37.00247,"lng":136.7845,"toilet":"有","wheelchair":"有","babyroom":"有"},
+    {"name":"窓口ローソンカロ","lat":37.01333,"lng":136.789,"toilet":"有","wheelchair":"有","babyroom":"有"},
+    {"name":"巌門クリガンモン","lat":37.09925,"lng":136.7307,"toilet":"有","wheelchair":"有","babyroom":"有"},
+    {"name":"巌門クリガンモン","lat":37.09925,"lng":136.7307,"toilet":"有","wheelchair":"有","babyroom":"有"},
+    {"name":"波凌歌のササナミ","lat":37.21872,"lng":136.6966,"toilet":"無","wheelchair":"無","babyroom":"無"},
+    {"name":"米島休憩園コメシマ","lat":37.0581,"lng":136.7785,"toilet":"有","wheelchair":"有","babyroom":"有"},
+    {"name":"三郎休憩園サンロク","lat":37.0194,"lng":136.7649,"toilet":"有","wheelchair":"有","babyroom":"有"},
+    {"name":"甘田農園アマダン","lat":36.96873,"lng":136.7738,"toilet":"有","wheelchair":"有","babyroom":"有"},
+    {"name":"代田新ナシタ","lat":37.0551,"lng":136.8188,"toilet":"有","wheelchair":"有","babyroom":"有"},
+    {"name":"徳田農タクダノ","lat":37.0513,"lng":136.8324,"toilet":"有","wheelchair":"有","babyroom":"有"},
+    {"name":"風戸農園フウトノウ","lat":37.13817,"lng":136.6928,"toilet":"有","wheelchair":"有","babyroom":"有"},
+    {"name":"西浦農園ニシウラ","lat":37.18157,"lng":136.6806,"toilet":"有","wheelchair":"無","babyroom":"有"},
+    {"name":"有川農園アリカガワ","lat":37.14133,"lng":136.6859,"toilet":"有","wheelchair":"有","babyroom":"有"},
+    {"name":"増美福徳増マスホラ","lat":37.1383,"lng":136.7234,"toilet":"有","wheelchair":"有","babyroom":"有"},
+    {"name":"荒木ケ丘工アラキガオカ","lat":37.1348,"lng":136.7131,"toilet":"無","wheelchair":"有","babyroom":"無"},
+    {"name":"志賀町テシカマチ","lat":37.01815,"lng":136.7669,"toilet":"有","wheelchair":"有","babyroom":"有"},
+    {"name":"志賀町町上シャカマチ","lat":37.02352,"lng":136.7627,"toilet":"有","wheelchair":"無","babyroom":"無"},
+    {"name":"ニュースナニスナ","lat":37.0285,"lng":136.7611,"toilet":"有","wheelchair":"無","babyroom":"有"},
+    {"name":"福浦みなとフクラミナト","lat":37.08415,"lng":136.7238,"toilet":"有","wheelchair":"無","babyroom":"有"}
   ];
 
-  // マーカー作成＆ポップアップ設定
   locations.forEach(loc => {
     const marker = L.marker([loc.lat, loc.lng]).addTo(map);
     const popupContent = `
