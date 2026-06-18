@@ -22,8 +22,8 @@
 <div id="dashboard">
   <h1>志賀町 人口ダッシュボード</h1>
   <canvas id="populationChart"></canvas>
-  <button id="btnSave">PDFで保存</button>
-  <table id="dataTable" aria-label="志賀町の人口データ">
+  <button id="btnSave" type="button">PDFで保存</button>
+  <table id="dataTable" aria-label="志賀町の人口データ" role="table">
     <thead>
       <tr>
         <th>年月</th><th>性別</th><th>前々月末日現在</th><th>出生</th><th>死亡</th><th>転入等</th><th>転出等</th><th>前月末日現在</th><th>増減</th>
@@ -36,37 +36,37 @@
 <script>
 (async () => {
   const sheetID = "1GvJulWQ__7_FA2FN_-29T0nKynzoExMKx7qnSRlvpDo";
-  const gid = "2141621599";
+  const gid = "2141621599"; // ご提示のSheetのgid
   const url = `https://docs.google.com/spreadsheets/d/${sheetID}/gviz/tq?tqx=out:json&gid=${gid}`;
 
   try {
     const response = await fetch(url);
     const text = await response.text();
 
-    // JSONPの関数呼び出し部分を抽出しJSONをパース
-    const jsonStr = text.match(/google\.visualization\.Query\.setResponse$$([\s\S]+)$$;?$/)[1];
-    const data = JSON.parse(jsonStr);
+    // JSONPから純粋なJSONを抽出
+    const jsonMatch = text.match(/google\.visualization\.Query\.setResponse$$([\s\S]+)$$;?$/);
+    if (!jsonMatch) throw new Error("JSONの解析に失敗しました。");
+    const jsonData = JSON.parse(jsonMatch[1]);
 
-    const rows = data.table.rows;
-    const cols = data.table.cols.map(c => c.label);
+    const rows = jsonData.table.rows;
+    const cols = jsonData.table.cols.map(c => c.label);
 
     const tbody = document.querySelector("#dataTable tbody");
     tbody.innerHTML = "";
 
-    // 月別集計用 Map {年月 => {birth:0, death:0, change:0}}
+    // 月ごとに出生、死亡、増減を合計（性別を合計）
     const monthlyStats = new Map();
 
     rows.forEach(row => {
       const c = row.c.map(cell => cell ? cell.v : "");
 
-      // c = [年月, 性別, 前々月末日現在, 出生, 死亡, 転入等, 転出等, 前月末日現在, 増減]
       const [yearMonth, gender, prevPrevMonth, birth, death, incoming, outgoing, prevMonth, change] = c;
 
-      // テーブル行を作成
+      // テーブル行追加
       const tr = document.createElement("tr");
       c.forEach(val => {
         const td = document.createElement("td");
-        td.textContent = val;
+        td.textContent = val ?? "";
         tr.appendChild(td);
       });
       tbody.appendChild(tr);
@@ -149,19 +149,18 @@
     });
 
     document.getElementById("btnSave").addEventListener("click", () => {
-      const element = document.getElementById("dashboard");
       html2pdf().set({
         margin: 0.5,
         filename: '志賀町_人口ダッシュボード.pdf',
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: { scale: 2 },
         jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
-      }).from(element).save();
+      }).from(document.getElementById("dashboard")).save();
     });
 
-  } catch (e) {
-    alert("データの取得または処理に失敗しました。コンソールを確認してください。");
-    console.error(e);
+  } catch (error) {
+    alert("データ取得エラーが発生しました。Googleスプレッドシートの公開設定をご確認ください。");
+    console.error(error);
   }
 })();
 </script>
