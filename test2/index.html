@@ -36,14 +36,12 @@
 <script>
 (async () => {
   const sheetID = "1GvJulWQ__7_FA2FN_-29T0nKynzoExMKx7qnSRlvpDo";
-  const gid = "2141621599"; // ご提示のSheetのgid
+  const gid = "2141621599"; // 指定シートのgid
   const url = `https://docs.google.com/spreadsheets/d/${sheetID}/gviz/tq?tqx=out:json&gid=${gid}`;
 
   try {
-    const response = await fetch(url);
-    const text = await response.text();
-
-    // JSONPから純粋なJSONを抽出
+    const resp = await fetch(url);
+    const text = await resp.text();
     const jsonMatch = text.match(/google\.visualization\.Query\.setResponse$$([\s\S]+)$$;?$/);
     if (!jsonMatch) throw new Error("JSONの解析に失敗しました。");
     const jsonData = JSON.parse(jsonMatch[1]);
@@ -54,17 +52,15 @@
     const tbody = document.querySelector("#dataTable tbody");
     tbody.innerHTML = "";
 
-    // 月ごとに出生、死亡、増減を合計（性別を合計）
     const monthlyStats = new Map();
 
     rows.forEach(row => {
-      const c = row.c.map(cell => cell ? cell.v : "");
+      const cells = row.c.map(cell => cell ? cell.v : "");
+      const [yearMonth, gender, prevPrevMonth, birth, death, incoming, outgoing, prevMonth, change] = cells;
 
-      const [yearMonth, gender, prevPrevMonth, birth, death, incoming, outgoing, prevMonth, change] = c;
-
-      // テーブル行追加
+      // テーブル行を追加
       const tr = document.createElement("tr");
-      c.forEach(val => {
+      cells.forEach(val => {
         const td = document.createElement("td");
         td.textContent = val ?? "";
         tr.appendChild(td);
@@ -80,9 +76,7 @@
       stats.change += Number(change) || 0;
     });
 
-    // 昇順に年月をソート
     const sortedMonths = Array.from(monthlyStats.keys()).sort();
-
     const labels = sortedMonths;
     const birthData = sortedMonths.map(m => monthlyStats.get(m).birth);
     const deathData = sortedMonths.map(m => monthlyStats.get(m).death);
@@ -91,7 +85,7 @@
     const ctx = document.getElementById("populationChart").getContext("2d");
     new Chart(ctx, {
       data: {
-        labels: labels,
+        labels,
         datasets: [
           {
             type: 'bar',
@@ -135,7 +129,7 @@
             type: 'linear',
             position: 'left',
             title: {
-              display: true, 
+              display: true,
               text: '人数'
             },
             beginAtZero: true
@@ -157,9 +151,9 @@
         jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
       }).from(document.getElementById("dashboard")).save();
     });
-
+    
   } catch (error) {
-    alert("データ取得エラーが発生しました。Googleスプレッドシートの公開設定をご確認ください。");
+    alert("データの取得に失敗しました。Googleスプレッドシートが「リンクを知っている全員が閲覧可能」かご確認ください。");
     console.error(error);
   }
 })();
