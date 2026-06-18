@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>志賀町 人口ダッシュボード</title>
+<title>志賀町 人口ダッシュボード - 人口シート利用版</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <style>
@@ -20,7 +20,7 @@
 </head>
 <body>
 <div id="dashboard">
-  <h1>志賀町 人口ダッシュボード</h1>
+  <h1>志賀町 人口ダッシュボード（人口シート）</h1>
   <canvas id="populationChart"></canvas>
   <button id="btnSave" type="button">PDFで保存</button>
   <table id="dataTable" aria-label="志賀町の人口データ" role="table">
@@ -36,7 +36,7 @@
 <script>
 (async () => {
   const sheetID = "1GvJulWQ__7_FA2FN_-29T0nKynzoExMKx7qnSRlvpDo";
-  const gid = "2141621599"; // 指定シートのgid
+  const gid = "0"; // 「人口」シートのgidに合わせて変更してください
   const url = `https://docs.google.com/spreadsheets/d/${sheetID}/gviz/tq?tqx=out:json&gid=${gid}`;
 
   try {
@@ -58,7 +58,7 @@
       const cells = row.c.map(cell => cell ? cell.v : "");
       const [yearMonth, gender, prevPrevMonth, birth, death, incoming, outgoing, prevMonth, change] = cells;
 
-      // テーブル行を追加
+      // テーブル行追加
       const tr = document.createElement("tr");
       cells.forEach(val => {
         const td = document.createElement("td");
@@ -151,9 +151,9 @@
         jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
       }).from(document.getElementById("dashboard")).save();
     });
-    
+
   } catch (error) {
-    alert("データの取得に失敗しました。Googleスプレッドシートが「リンクを知っている全員が閲覧可能」かご確認ください。");
+    alert("データの取得に失敗しました。共有設定やgidが正しいかご確認ください。");
     console.error(error);
   }
 })();
