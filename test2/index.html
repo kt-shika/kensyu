@@ -1,1 +1,155 @@
 
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>志賀町 人口ダッシュボード</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<style>
+  body { font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; margin: 20px; background:#f9f9f9; }
+  h1 { text-align:center; }
+  #dashboard { max-width: 900px; margin: auto; background: #fff; padding: 20px; box-shadow: 0 0 10px #ccc; border-radius:8px; }
+  canvas { background: #fff; width: 100% !important; height: 400px !important; display: block; }
+  table { width: 100%; border-collapse: collapse; margin-top: 20px;}
+  th, td { border: 1px solid #ccc; padding: 6px; text-align: center; font-size: 14px; }
+  th { background-color: #eee; }
+  #btnSave { margin: 20px auto 0; display: block; padding: 10px 24px; font-size: 16px; cursor: pointer; border-radius: 5px; background: #007acc; color: #fff; border: none; }
+  #btnSave:hover { background: #005fa3; }
+</style>
+</head>
+<body>
+<div id="dashboard">
+  <h1>志賀町 人口ダッシュボード</h1>
+  <canvas id="populationChart"></canvas>
+  <button id="btnSave">PDFで保存</button>
+  <table id="dataTable" aria-label="志賀町の人口データ">
+    <thead>
+      <tr>
+        <th>年月</th><th>性別</th><th>前々月末日現在</th><th>出生</th><th>死亡</th><th>転入等</th><th>転出等</th><th>前月末日現在</th><th>増減</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<script>
+(() => {
+  const rawData = [
+    ["200805","男","","6","17","27","36","11547","24"],
+    ["200805","女","","8","16","22","37","12781","-27"],
+    ["200806","男","11547","5","13","23","20","11543","27"],
+    ["200806","女","12781","6","14","17","18","12773","-13"]
+  ];
+
+  const tbody = document.querySelector("#dataTable tbody");
+
+  // 集計用Map：年月ごとに出生・死亡・増減を合計して格納するオブジェクトにする
+  // 例: { "200805": {birth: 0, death: 0, change: 0} }
+  const monthlyStats = new Map();
+
+  rawData.forEach(row => {
+    const tr = document.createElement("tr");
+    row.forEach(cell => {
+      const td = document.createElement("td");
+      td.textContent = cell;
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+
+    const yearMonth = row[0];
+    const birth = Number(row[3]) || 0;
+    const death = Number(row[4]) || 0;
+    const change = Number(row[8]) || 0;
+
+    if (!monthlyStats.has(yearMonth)) {
+      monthlyStats.set(yearMonth, {birth:0, death:0, change:0});
+    }
+    const stats = monthlyStats.get(yearMonth);
+    stats.birth += birth;
+    stats.death += death;
+    stats.change += change;
+  });
+
+  const sortedMonths = Array.from(monthlyStats.keys()).sort();
+
+  const labels = sortedMonths;
+  const birthData = sortedMonths.map(m => monthlyStats.get(m).birth);
+  const deathData = sortedMonths.map(m => monthlyStats.get(m).death);
+  const changeData = sortedMonths.map(m => monthlyStats.get(m).change);
+
+  const ctx = document.getElementById("populationChart").getContext("2d");
+  new Chart(ctx, {
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          type: 'bar',
+          label: '出生数',
+          data: birthData,
+          backgroundColor: 'rgba(54, 162, 235, 0.7)',
+          yAxisID: 'y',
+          stack: 'population'
+        },
+        {
+          type: 'bar',
+          label: '死亡数',
+          data: deathData,
+          backgroundColor: 'rgba(255, 99, 132, 0.7)',
+          yAxisID: 'y',
+          stack: 'population'
+        },
+        {
+          type: 'line',
+          label: '人口増減',
+          data: changeData,
+          borderColor: 'rgb(75, 192, 192)',
+          backgroundColor: 'rgba(75, 192, 192, 0.2)',
+          tension: 0.1,
+          yAxisID: 'y',
+          fill: false,
+          pointRadius: 5,
+          pointHoverRadius: 7
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      interaction: {
+        mode: 'index',
+        intersect: false,
+      },
+      stacked: false,
+      scales: {
+        y: {
+          type: 'linear',
+          position: 'left',
+          title: {
+            display: true, 
+            text: '人数'
+          },
+          beginAtZero: true
+        }
+      },
+      plugins: {
+        legend: { position: 'top' },
+        tooltip: { enabled: true }
+      }
+    }
+  });
+
+  document.getElementById("btnSave").addEventListener("click", () => {
+    const element = document.getElementById("dashboard");
+    html2pdf().set({
+      margin: 0.5,
+      filename: '志賀町_人口ダッシュボード.pdf',
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2 },
+      jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+    }).from(element).save();
+  });
+})();
+</script>
+</body>
+</html>
