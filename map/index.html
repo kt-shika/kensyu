@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <title>被害状況投稿マップ（詳細説明任意＆仮マーカー修正）</title>
+  <title>被害状況投稿マップ（詳細説明任意＆仮マーカー修正＆初期表示範囲）</title>
   <link 
     rel="stylesheet" 
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" 
@@ -47,22 +47,26 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script>
-    // 石川県志賀町中心
-    const map = L.map('map').setView([37.2902, 136.8217], 13);
+    const map = L.map('map');
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap contributors'
     }).addTo(map);
+
+    // 最初に表示する範囲（南西と北東の座標）
+    const bounds = [
+      [36.96025, 136.69756], // 南西
+      [37.21008, 136.77429]  // 北東
+    ];
+    map.fitBounds(bounds);
 
     let selectedLatLng = null;
     let tempMarker = null;
 
     const locationInfo = document.getElementById('locationInfo');
 
-    // 投稿データ読み込み
     let reports = JSON.parse(localStorage.getItem('damageReports') || '[]');
 
-    // 赤色マーカー（投稿時の仮マーカー）※安定した画像に修正
     const redIcon = new L.Icon({
       iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
       shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
@@ -72,7 +76,6 @@
       shadowSize: [41, 41]
     });
 
-    // カテゴリ別のマーカーアイコン色定義
     const iconMap = {
       flood: new L.Icon({
         iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png',
@@ -116,7 +119,6 @@
       })
     };
 
-    // 投稿済みマーカー生成
     function addMarker(report) {
       const icon = iconMap[report.damageType] || iconMap.other;
       const marker = L.marker([report.lat, report.lng], { icon: icon }).addTo(map);
@@ -130,7 +132,6 @@
       marker.bindPopup(content);
     }
 
-    // damageTypeのラベルを返す補助関数
     function getDamageTypeLabel(value) {
       const map = {
         flood: '洪水・浸水（宅地や建物周辺の水没）',
@@ -142,10 +143,8 @@
       return map[value] || value;
     }
 
-    // 既存投稿のマーカーを配置
     reports.forEach(addMarker);
 
-    // 地図クリックで位置指定、赤色仮マーカー表示
     map.on('click', function(e) {
       selectedLatLng = e.latlng;
 
@@ -157,7 +156,6 @@
       locationInfo.textContent = `選択位置：緯度 ${selectedLatLng.lat.toFixed(5)}, 経度 ${selectedLatLng.lng.toFixed(5)}`;
     });
 
-    // 投稿フォーム送信処理
     document.getElementById('reportForm').addEventListener('submit', function(e) {
       e.preventDefault();
 
@@ -201,7 +199,6 @@
 
         alert('投稿されました！');
 
-        // リセット
         document.getElementById('reportForm').reset();
         locationInfo.textContent = '地図をクリックして投稿場所を選択してください。';
         if (tempMarker) {
