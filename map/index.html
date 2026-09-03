@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <title>被害状況投稿マップ（地図で位置指定）</title>
+  <title>被害状況投稿マップ（カテゴリ別マーカー色分け）</title>
   <link 
     rel="stylesheet" 
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" 
@@ -23,8 +23,19 @@
   <div id="locationInfo">地図をクリックして投稿場所を選択してください。</div>
 
   <form id="reportForm">
-    <label>被害内容説明：
-      <textarea id="description" required></textarea>
+    <label>被害内容：
+      <select id="damageType" required>
+        <option value="" disabled selected>選択してください</option>
+        <option value="flood">洪水・浸水（宅地や建物周辺の水没）</option>
+        <option value="roadFlood">道路の冠水・寸断（通行障害）</option>
+        <option value="landslide">土砂崩れ・地滑り</option>
+        <option value="buildingDamage">建物の倒壊・損壊</option>
+        <option value="other">その他</option>
+      </select>
+    </label>
+    <br><br>
+    <label>詳細説明：
+      <textarea id="description" rows="4" cols="50" required></textarea>
     </label>
     <br>
     <label>写真（1枚まで）：
@@ -36,7 +47,7 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script>
-    // 石川県志賀町の中心座標（緯度: 37.2902, 経度: 136.8217）で地図初期表示
+    // 石川県志賀町中心
     const map = L.map('map').setView([37.2902, 136.8217], 13);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -48,19 +59,10 @@
 
     const locationInfo = document.getElementById('locationInfo');
 
-    // 投稿データをローカルストレージから読み込み
+    // 投稿データ読み込み
     let reports = JSON.parse(localStorage.getItem('damageReports') || '[]');
 
-    // 色違いのマーカーアイコンを作成（青と赤）
-    const blueIcon = new L.Icon({
-      iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
-      shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-      iconSize: [25, 41],
-      iconAnchor: [12, 41],
-      popupAnchor: [1, -34],
-      shadowSize: [41, 41]
-    });
-
+    // 赤色マーカー（投稿時の仮マーカー）
     const redIcon = new L.Icon({
       iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-red.png',
       shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
@@ -70,19 +72,78 @@
       shadowSize: [41, 41]
     });
 
+    // カテゴリ別のマーカーアイコン色定義
+    const iconMap = {
+      flood: new L.Icon({
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41]
+      }),
+      roadFlood: new L.Icon({
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41]
+      }),
+      landslide: new L.Icon({
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-orange.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41]
+      }),
+      buildingDamage: new L.Icon({
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-violet.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41]
+      }),
+      other: new L.Icon({
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-grey.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41]
+      })
+    };
+
+    // 投稿済みマーカー生成
     function addMarker(report) {
-      const marker = L.marker([report.lat, report.lng], { icon: blueIcon }).addTo(map);
-      let content = `<b>説明:</b> ${report.description}<br>`;
+      const icon = iconMap[report.damageType] || iconMap.other;
+      const marker = L.marker([report.lat, report.lng], { icon: icon }).addTo(map);
+      let content = `<b>被害内容:</b> ${getDamageTypeLabel(report.damageType)}<br>`;
+      content += `<b>詳細:</b> ${report.description}<br>`;
       if (report.photoData) {
         content += `<img src="${report.photoData}" alt="被害写真" />`;
       }
       marker.bindPopup(content);
     }
 
-    // 既存投稿のマーカーを作成
+    // damageTypeのラベルを返す補助関数
+    function getDamageTypeLabel(value) {
+      const map = {
+        flood: '洪水・浸水（宅地や建物周辺の水没）',
+        roadFlood: '道路の冠水・寸断（通行障害）',
+        landslide: '土砂崩れ・地滑り',
+        buildingDamage: '建物の倒壊・損壊',
+        other: 'その他'
+      };
+      return map[value] || value;
+    }
+
+    // 既存投稿のマーカーを地図に配置
     reports.forEach(addMarker);
 
-    // 地図クリックでピンを立てる＆位置情報セット（赤色の仮マーカー）
+    // 地図クリックで位置指定、赤色仮マーカー表示
     map.on('click', function(e) {
       selectedLatLng = e.latlng;
 
@@ -94,11 +155,18 @@
       locationInfo.textContent = `選択位置：緯度 ${selectedLatLng.lat.toFixed(5)}, 経度 ${selectedLatLng.lng.toFixed(5)}`;
     });
 
+    // 投稿フォーム送信処理
     document.getElementById('reportForm').addEventListener('submit', function(e) {
       e.preventDefault();
 
       if (!selectedLatLng) {
         alert('地図をクリックして投稿場所を選択してください。');
+        return;
+      }
+
+      const damageType = document.getElementById('damageType').value;
+      if (!damageType) {
+        alert('被害内容を選択してください。');
         return;
       }
 
@@ -118,6 +186,7 @@
         const newReport = {
           lat: selectedLatLng.lat,
           lng: selectedLatLng.lng,
+          damageType: damageType,
           description: description,
           photoData: photoData,
           timestamp: new Date().toISOString()
@@ -130,7 +199,7 @@
 
         alert('投稿されました！');
 
-        // フォームと選択位置リセット
+        // リセット
         document.getElementById('reportForm').reset();
         locationInfo.textContent = '地図をクリックして投稿場所を選択してください。';
         if (tempMarker) {
