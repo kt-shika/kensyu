@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <title>被害状況投稿マップ（カテゴリ別マーカー色分け）</title>
+  <title>被害状況投稿マップ（詳細説明任意＆仮マーカー修正）</title>
   <link 
     rel="stylesheet" 
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" 
@@ -34,8 +34,8 @@
       </select>
     </label>
     <br><br>
-    <label>詳細説明：
-      <textarea id="description" rows="4" cols="50" required></textarea>
+    <label>詳細説明（任意）：
+      <textarea id="description" rows="4" cols="50"></textarea>
     </label>
     <br>
     <label>写真（1枚まで）：
@@ -62,9 +62,9 @@
     // 投稿データ読み込み
     let reports = JSON.parse(localStorage.getItem('damageReports') || '[]');
 
-    // 赤色マーカー（投稿時の仮マーカー）
+    // 赤色マーカー（投稿時の仮マーカー）※安定した画像に修正
     const redIcon = new L.Icon({
-      iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-red.png',
+      iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
       shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
       iconSize: [25, 41],
       iconAnchor: [12, 41],
@@ -121,7 +121,9 @@
       const icon = iconMap[report.damageType] || iconMap.other;
       const marker = L.marker([report.lat, report.lng], { icon: icon }).addTo(map);
       let content = `<b>被害内容:</b> ${getDamageTypeLabel(report.damageType)}<br>`;
-      content += `<b>詳細:</b> ${report.description}<br>`;
+      if (report.description && report.description.trim() !== '') {
+        content += `<b>詳細:</b> ${report.description}<br>`;
+      }
       if (report.photoData) {
         content += `<img src="${report.photoData}" alt="被害写真" />`;
       }
@@ -140,7 +142,7 @@
       return map[value] || value;
     }
 
-    // 既存投稿のマーカーを地図に配置
+    // 既存投稿のマーカーを配置
     reports.forEach(addMarker);
 
     // 地図クリックで位置指定、赤色仮マーカー表示
