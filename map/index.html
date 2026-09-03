@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>被害状況投稿マップ（地図で位置指定）</title>
+  <link 
+    rel="stylesheet" 
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" 
+    crossorigin=""
+  />
+  <style>
+    #map { height: 400px; margin-bottom: 20px; }
+    form { margin-bottom: 20px; }
+    img { max-width: 100%; height: auto; display: block; margin-top: 10px; }
+    #locationInfo { margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+  <h1>被害状況投稿マップ</h1>
+
+  <div id="map"></div>
+
+  <div id="locationInfo">地図をクリックして投稿場所を選択してください。</div>
+
+  <form id="reportForm">
+    <label>被害内容説明：
+      <textarea id="description" required></textarea>
+    </label>
+    <br>
+    <label>写真（1枚まで）：
+      <input type="file" id="photo" accept="image/*" required>
+    </label>
+    <br>
+    <button type="submit">投稿する</button>
+  </form>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script>
+    const map = L.map('map').setView([35.6895, 139.6917], 10); // 東京中心
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    let selectedLatLng = null;
+    let tempMarker = null;
+
+    const locationInfo = document.getElementById('locationInfo');
+
+    // 投稿データをローカルストレージから読み込み
+    let reports = JSON.parse(localStorage.getItem('damageReports') || '[]');
+
+    function addMarker(report) {
+      const marker = L.marker([report.lat, report.lng]).addTo(map);
+      let content = `<b>説明:</b> ${report.description}<br>`;
+      if (report.photoData) {
+        content += `<img src="${report.photoData}" alt="被害写真" />`;
+      }
+      marker.bindPopup(content);
+    }
+
+    // 既存投稿のマーカーを作成
+    reports.forEach(addMarker);
+
+    // 地図クリックでピンを立てる＆位置情報セット
+    map.on('click', function(e) {
+      selectedLatLng = e.latlng;
+
+      if (tempMarker) {
+        map.removeLayer(tempMarker);
+      }
+      tempMarker = L.marker(selectedLatLng).addTo(map);
+
+      locationInfo.textContent = `選択位置：緯度 ${selectedLatLng.lat.toFixed(5)}, 経度 ${selectedLatLng.lng.toFixed(5)}`;
+    });
+
+    document.getElementById('reportForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+
+      if (!selectedLatLng) {
+        alert('地図をクリックして投稿場所を選択してください。');
+        return;
+      }
+
+      const description = document.getElementById('description').value;
+      const photoInput = document.getElementById('photo');
+      const file = photoInput.files[0];
+
+      if (!file) {
+        alert('写真を選択してください。');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        const photoData = event.target.result;
+
+        const newReport = {
+          lat: selectedLatLng.lat,
+          lng: selectedLatLng.lng,
+          description: description,
+          photoData: photoData,
+          timestamp: new Date().toISOString()
+        };
+
+        reports.push(newReport);
+        localStorage.setItem('damageReports', JSON.stringify(reports));
+
+        addMarker(newReport);
+
+        alert('投稿されました！');
+
+        // フォームと選択位置リセット
+        document.getElementById('reportForm').reset();
+        locationInfo.textContent = '地図をクリックして投稿場所を選択してください。';
+        if (tempMarker) {
+          map.removeLayer(tempMarker);
+          tempMarker = null;
+        }
+        selectedLatLng = null;
+      };
+      reader.readAsDataURL(file);
+    });
+  </script>
+</body>
+</html>
