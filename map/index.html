@@ -36,7 +36,8 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script>
-    const map = L.map('map').setView([35.6895, 139.6917], 10); // 東京中心
+    // 石川県志賀町の中心座標（緯度: 37.2902, 経度: 136.8217）で地図初期表示
+    const map = L.map('map').setView([37.2902, 136.8217], 13);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap contributors'
@@ -50,8 +51,27 @@
     // 投稿データをローカルストレージから読み込み
     let reports = JSON.parse(localStorage.getItem('damageReports') || '[]');
 
+    // 色違いのマーカーアイコンを作成（青と赤）
+    const blueIcon = new L.Icon({
+      iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+      shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+      iconSize: [25, 41],
+      iconAnchor: [12, 41],
+      popupAnchor: [1, -34],
+      shadowSize: [41, 41]
+    });
+
+    const redIcon = new L.Icon({
+      iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-red.png',
+      shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+      iconSize: [25, 41],
+      iconAnchor: [12, 41],
+      popupAnchor: [1, -34],
+      shadowSize: [41, 41]
+    });
+
     function addMarker(report) {
-      const marker = L.marker([report.lat, report.lng]).addTo(map);
+      const marker = L.marker([report.lat, report.lng], { icon: blueIcon }).addTo(map);
       let content = `<b>説明:</b> ${report.description}<br>`;
       if (report.photoData) {
         content += `<img src="${report.photoData}" alt="被害写真" />`;
@@ -62,14 +82,14 @@
     // 既存投稿のマーカーを作成
     reports.forEach(addMarker);
 
-    // 地図クリックでピンを立てる＆位置情報セット
+    // 地図クリックでピンを立てる＆位置情報セット（赤色の仮マーカー）
     map.on('click', function(e) {
       selectedLatLng = e.latlng;
 
       if (tempMarker) {
         map.removeLayer(tempMarker);
       }
-      tempMarker = L.marker(selectedLatLng).addTo(map);
+      tempMarker = L.marker(selectedLatLng, { icon: redIcon }).addTo(map);
 
       locationInfo.textContent = `選択位置：緯度 ${selectedLatLng.lat.toFixed(5)}, 経度 ${selectedLatLng.lng.toFixed(5)}`;
     });
